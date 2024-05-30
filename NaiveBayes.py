@@ -20,23 +20,31 @@ fresh = [
     "The film's premise yields a story that's insightful and engaging while touching on many other matters of love and money.",
     ]
 
+common_word = [
+    "the",
+    "be",
+    "of",
+    "and",
+    "a",
+    "in",
+    "that",
+    "have", 	
+    "I",
+    "it",
+    "for",
+    "not",
+    "on",
+    "with",
+    "he",
+    "Pron"
+]
+
+
 total_oraciones = len(rotten) + len(fresh)
+
 # PROBABILIDADES TOTALES
 p_rotten = len(rotten) / total_oraciones
 p_fresh = len(fresh) / total_oraciones
-
-def contar_total(corpus):
-    total = 0
-    for oracion in corpus:
-        critica = oracion.lower()
-        critica = re.sub(r'\W', ' ', critica)
-        critica = re.sub(r'\s+', ' ', critica)
-        tokens = critica.split(" ")
-        total += len(tokens)
-    return total
-
-cantidad_palabras_rotten = contar_total(rotten)
-cantidad_palabras_fresh = contar_total(fresh)
 
 # Tabla de frecuencias (Bag of words)
 def crear_tabla_frecuencias(corpus):
@@ -47,12 +55,17 @@ def crear_tabla_frecuencias(corpus):
         critica = re.sub(r'\s+', ' ', critica)
         tokens = critica.split(" ")
         for token in tokens:
-            if token not in frecuencias.keys():
-                frecuencias[token] = 1
-            else:
-                frecuencias[token] += 1
+            if token not in common_word:
+                if token not in frecuencias.keys():
+                    frecuencias[token] = 1
+                else:
+                    frecuencias[token] += 1
     return frecuencias
 
+frecuencia_rotten = crear_tabla_frecuencias(rotten)
+frecuencia_fresh = crear_tabla_frecuencias(fresh)
+
+# Contar la cantidad total de palabras de todas las muestras de los arreglos
 def contar_palabras(corpus):
     frecuenia = 0
     for oracion in corpus:
@@ -61,17 +74,8 @@ def contar_palabras(corpus):
 
 total_rotten = contar_palabras(rotten)
 total_fresh = contar_palabras(fresh)
-frecuencia_rotten = crear_tabla_frecuencias(rotten)
-frecuencia_fresh = crear_tabla_frecuencias(fresh)
 
-
-def transformar_frecuencia_probabilidad(frecuencias, total):
-    cpt_equivalente = {}
-    for k,v in frecuencias.items():
-        probabilidad  = v / total
-        cpt_equivalente[k] = probabilidad
-    return cpt_equivalente
-
+# Cálculo utilizando laplace Smooting para evitar que se den probabilidades como 0.
 def transformar_frecuencia_probabilidad_laplace(frecuencias, total):
     cpt_equivalente = {}
     n = 1
@@ -80,10 +84,6 @@ def transformar_frecuencia_probabilidad_laplace(frecuencias, total):
         probabilidad  = (v + n) / (total + (n*k))
         cpt_equivalente[key] = probabilidad
     return cpt_equivalente
-
-# PROBABILIDAD DE PALABRAS POR CATEGORÍA
-cpt_rotten = transformar_frecuencia_probabilidad(frecuencia_rotten, total_rotten)
-cpt_fresh = transformar_frecuencia_probabilidad(frecuencia_fresh, total_fresh)
 
 cpt_rotten_laplace = transformar_frecuencia_probabilidad_laplace(frecuencia_rotten, total_rotten)
 cpt_fresh_laplace = transformar_frecuencia_probabilidad_laplace(frecuencia_fresh, total_fresh)
@@ -95,12 +95,14 @@ frase = "For what it is and for whom it is intended, it's not a bad movie, just 
 frase2 = "A fantasy adventure that fuses Greek mythology to contemporary American places and values. Anyone around 15 (give or take a couple of years) will thrill to the visual spectacle"
 # fresh no existe
 frase3 = "Percy Jackson may not be ""Harry Potter good,"" but kids will really enjoy it and parents will be happy to have a moviethey can bring them to that's family-friendly."
+# Rotten no existe
+frase4 = "Bring on the David Fincher-helmed remake."
 # P(ROTTEN | frase) =
 # P(frase | ROTTEN) = P(palabra1 | Rotten) + P(palabra2 | Rotten) + P(palabra3 | Rotten) + ... + P(palabraN | Rotten)
 # Frase sea rotten
 
+# Método de la inferencia
 def esFresco(critica):
-    resultado = 0
     critica = critica.lower()
     critica = re.sub(r'\W', ' ', critica)
     critica = re.sub(r'\s+', ' ', critica)
@@ -141,9 +143,4 @@ if __name__ == '__main__':
     print(esFresco(frase))
     print(esFresco(frase2))
     print(esFresco(frase3))
-    # print(cpt_fresh)
-    # print(cpt_rotten)
-    # frecuenia_fresh = crear_tabla_frecuencias(fresh)
-    # print(frecuenia_fresh)
-    # print(frecuencia_rotten)
-    # print(cpt_rotten)
+    print(esFresco(frase4))
