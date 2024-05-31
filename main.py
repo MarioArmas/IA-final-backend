@@ -3,14 +3,16 @@ import uvicorn
 from pydantic import BaseModel
 import pandas as pd
 import os
+import NaiveBayes
 
 app = FastAPI()
-rotten = []
-fresh = []
 movies = {}
 
 class Body(BaseModel):
    link: str
+
+class BodyBayes(BaseModel):
+   review: str
 
 def read_files():
    file_movies = pd.read_csv('rotten_tomatoes_movies.csv', header=0)
@@ -59,9 +61,9 @@ def read_files():
 
       # get rotten and fresh reviews
       if review['review_type'] == 'Fresh':
-         fresh.append(review)
+         NaiveBayes.fresh.append(review['review_content'])
       elif review['review_type'] == 'Rotten':
-         rotten.append(review)
+         NaiveBayes.rotten.append(review['review_content'])
 
       # add reviews to current data
       if str(y['rotten_tomatoes_link']) not in temp_movies.keys():
@@ -96,6 +98,7 @@ def read_files():
    return temp_movies
 
 movies = read_files()
+app_model = NaiveBayes.Start()
 
 @app.get('/get-movie')
 async def get_movie(payload: Body):
@@ -104,6 +107,19 @@ async def get_movie(payload: Body):
          'error': 'No movies with that code'
       }
    return movies[f'm/{payload.link}']
+
+@app.post('/get-review')
+def get_review_bayes(payload: BodyBayes):
+   result = NaiveBayes.esFresco(app_model, payload.review)
+   
+   return {'review-type': result}
+
+@app.get('/test-rotten-fresh')
+def get_arrays():
+   return {
+      'fresh': len(NaiveBayes.fresh),
+      'rotten': len(NaiveBayes.rotten)
+   }
 
 @app.get('/hello-world')
 def read_root():

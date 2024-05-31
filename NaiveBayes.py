@@ -1,24 +1,7 @@
 import re # Biblioteca de regex
 
-rotten = [
-    "What's really lacking in The Lightning Thief is a genuine sense of wonder, the same thing that brings viewers back to Hogwarts over and over again.",
-    "It's more a list of ingredients than a movie-magic potion to enjoy from start to finish.",
-    "Harry Potter knockoffs don't come more transparent and slapdash than this wannabe-franchise jumpstarter directed by Chris Columbus.",
-    "Trifles, trivialities, frippery and froth. We've got plenty of words to describe things that don't matter. And now, we also have a film. Please Give.",
-    "Real joys and sorrows must be bigger and deeper than this.",
-    "The acting quality is strong, especially from the ever-reliable Catherine Keener as Kate, but it's almost impossible to care about her character's dilemmas.",
-    "The film is more emotionally incisive than it initially appears to be, but equally it ties together a little too neatly when it already has such a concise running time.",
-    "It was a big hit. I have never understood why.",
-    ]
-fresh = [
-    "A fantasy adventure that fuses Greek mythology to contemporary American places and values. Anyone around 15 (give or take a couple of years) will thrill to the visual spectacle",
-    "Uma Thurman as Medusa, the gorgon with a coiffure of writhing snakes and stone-inducing hypnotic gaze is one of the highlights of this bewitching fantas",
-    "With a top-notch cast and dazzling special effects, this will tide the teens over until the next Harry Potter instalment",
-    "With her new film, the poignant and funny Please Give, Holofcener is at the top of her game.",
-    "Brutally honest about the way people behave, and often devastatingly funny in its observations.",
-    "It recognizes that a film about unpleasant people need not be unpleasant itself as long as it remembers not to make them uninteresting as well.",
-    "The film's premise yields a story that's insightful and engaging while touching on many other matters of love and money.",
-    ]
+rotten = []
+fresh = []
 
 common_word = [
     "the",
@@ -39,13 +22,6 @@ common_word = [
     "Pron"
 ]
 
-
-total_oraciones = len(rotten) + len(fresh)
-
-# PROBABILIDADES TOTALES
-p_rotten = len(rotten) / total_oraciones
-p_fresh = len(fresh) / total_oraciones
-
 # Tabla de frecuencias (Bag of words)
 def crear_tabla_frecuencias(corpus):
     frecuencias = {}
@@ -62,18 +38,12 @@ def crear_tabla_frecuencias(corpus):
                     frecuencias[token] += 1
     return frecuencias
 
-frecuencia_rotten = crear_tabla_frecuencias(rotten)
-frecuencia_fresh = crear_tabla_frecuencias(fresh)
-
 # Contar la cantidad total de palabras de todas las muestras de los arreglos
 def contar_palabras(corpus):
     frecuenia = 0
     for oracion in corpus:
         frecuenia += len(oracion.split(" "))
     return frecuenia
-
-total_rotten = contar_palabras(rotten)
-total_fresh = contar_palabras(fresh)
 
 # Cálculo utilizando laplace Smooting para evitar que se den probabilidades como 0.
 def transformar_frecuencia_probabilidad_laplace(frecuencias, total):
@@ -85,8 +55,54 @@ def transformar_frecuencia_probabilidad_laplace(frecuencias, total):
         cpt_equivalente[key] = probabilidad
     return cpt_equivalente
 
-cpt_rotten_laplace = transformar_frecuencia_probabilidad_laplace(frecuencia_rotten, total_rotten)
-cpt_fresh_laplace = transformar_frecuencia_probabilidad_laplace(frecuencia_fresh, total_fresh)
+class Start():
+    def __init__(self) -> None:
+        total_oraciones = len(rotten) + len(fresh)
+
+        # PROBABILIDADES TOTALES
+        self.p_rotten = len(rotten) / total_oraciones
+        self.p_fresh = len(fresh) / total_oraciones
+
+        self.frecuencia_rotten = crear_tabla_frecuencias(rotten)
+        self.frecuencia_fresh = crear_tabla_frecuencias(fresh)
+
+        self.total_rotten = contar_palabras(rotten)
+        self.total_fresh = contar_palabras(fresh)
+
+        self.cpt_rotten_laplace = transformar_frecuencia_probabilidad_laplace(self.frecuencia_rotten, self.total_rotten)
+        self.cpt_fresh_laplace = transformar_frecuencia_probabilidad_laplace(self.frecuencia_fresh, self.total_fresh)
+
+# Método de la inferencia
+def esFresco(system, critica):
+    critica = critica.lower()
+    critica = re.sub(r'\W', ' ', critica)
+    critica = re.sub(r'\s+', ' ', critica)
+    tokens = critica.split(" ")
+    kf = len(system.frecuencia_fresh)
+    kr = len(system.frecuencia_rotten)
+    n = 1
+
+    acumuladoRotten = 1.0
+    acumuladoFresh = 1.0
+
+    for token in tokens:
+        if token not in system.cpt_fresh_laplace:
+            acumuladoFresh *= (0 + n) / (system.total_fresh + (n*kf))
+        else:
+            acumuladoFresh *= system.cpt_fresh_laplace[token]
+        
+        if token not in system.cpt_rotten_laplace:
+            acumuladoRotten *= (0 + n) / (system.total_rotten + (n*kr))
+        else:
+            acumuladoRotten *= system.cpt_rotten_laplace[token]
+
+    resultadoFresco = (acumuladoFresh * system.p_fresh)
+    resultadoPodrido = (acumuladoRotten * system.p_rotten)
+
+    if resultadoFresco >= resultadoPodrido:
+        return "Fresh"
+    else:
+        return "Rotten"
 
 # INFERENCIA
 # Rotten
@@ -101,46 +117,10 @@ frase4 = "Bring on the David Fincher-helmed remake."
 # P(frase | ROTTEN) = P(palabra1 | Rotten) + P(palabra2 | Rotten) + P(palabra3 | Rotten) + ... + P(palabraN | Rotten)
 # Frase sea rotten
 
-# Método de la inferencia
-def esFresco(critica):
-    critica = critica.lower()
-    critica = re.sub(r'\W', ' ', critica)
-    critica = re.sub(r'\s+', ' ', critica)
-    tokens = critica.split(" ")
-    kf = len(frecuencia_fresh)
-    kr = len(frecuencia_rotten)
-    n = 1
-
-    acumuladoRotten = 1.0
-    acumuladoFresh = 1.0
-
-    for token in tokens:
-        if token not in cpt_fresh_laplace:
-            acumuladoFresh *= (0 + n) / (total_fresh + (n*kf))
-        else:
-            acumuladoFresh *= cpt_fresh_laplace[token]
-        
-        if token not in cpt_rotten_laplace:
-            acumuladoRotten *= (0 + n) / (total_rotten + (n*kr))
-        else:
-            acumuladoRotten *= cpt_rotten_laplace[token]
-        
-
-    resultadoFresco = (acumuladoFresh * p_fresh)
-    resultadoPodrido = (acumuladoRotten * p_rotten)
-
-    if resultadoFresco >= resultadoPodrido:
-        return "Fresh"
-    else:
-        return "Rotten"
-
-
-
-
-
 if __name__ == '__main__':
+    app = Start()
     print("Hello world")
-    print(esFresco(frase))
-    print(esFresco(frase2))
-    print(esFresco(frase3))
-    print(esFresco(frase4))
+    print(esFresco(app, frase))
+    print(esFresco(app, frase2))
+    print(esFresco(app, frase3))
+    print(esFresco(app, frase4))
