@@ -4,10 +4,27 @@ from pydantic import BaseModel
 import pandas as pd
 import os
 import NaiveBayes
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 movies = {}
 movies_list = []
+
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class Body(BaseModel):
    link: str
@@ -106,7 +123,7 @@ def read_files():
 movies = read_files()
 app_model = NaiveBayes.Start()
 
-@app.get('/get-movie')
+@app.post('/get-movie')
 async def get_movie(payload: Body):
    if f"m/{payload.link}" not in movies.keys():
       return {
@@ -114,7 +131,7 @@ async def get_movie(payload: Body):
       }
    return movies[f'm/{payload.link}']
 
-@app.get('/get-all-movies')
+@app.post('/get-all-movies')
 def get_all_movies(payload: Pagination):
    page_size = 100
    index = payload.page
@@ -132,7 +149,7 @@ def get_all_movies(payload: Pagination):
 
    return movies_list[start:end]
 
-@app.get('/get-review')
+@app.post('/get-review')
 def get_review_bayes(payload: BodyBayes):
    result = NaiveBayes.esFresco(app_model, payload.review)
    
