@@ -7,6 +7,7 @@ import NaiveBayes
 
 app = FastAPI()
 movies = {}
+movies_list = []
 
 class Body(BaseModel):
    link: str
@@ -19,30 +20,32 @@ def read_files():
    temp_movies = {}
    
    for index, x in file_movies.iterrows():
-      temp_movies[str(x['rotten_tomatoes_link'])] = {
-            'title': str(x['movie_title']),
-            'info': str(x['movie_info']),
-            'critics_consensus': str(x['critics_consensus']),
-            'content_rating': str(x['content_rating']),
-            'genres': str(x['genres']),
-            'directors': str(x['directors']),
-            'authors': str(x['authors']),
-            'actors': str(x['actors']),
-            'original_release_date': str(x['original_release_date']),
-            'streaming_release_date': str(x['streaming_release_date']),
-            'runtime': str(x['runtime']),
-            'production_company': str(x['production_company']),
-            'tomatometer_status': str(x['tomatometer_status']),
-            'tomatometer_rating': str(x['tomatometer_rating']),
-            'tomatometer_count': str(x['tomatometer_count']),
-            'audience_status': str(x['audience_status']),
-            'audience_rating': str(x['audience_rating']),
-            'audience_count': str(x['audience_count']),
-            'tomatometer_top_critics_count': str(x['tomatometer_top_critics_count']),
-            'tomatometer_fresh_critics_count': str(x['tomatometer_fresh_critics_count']),
-            'tomatometer_rotten_critics_count': str(x['tomatometer_rotten_critics_count']),
-            'reviews': []
-         }
+      movie_template = {
+         'title': str(x['movie_title']),
+         'info': str(x['movie_info']),
+         'critics_consensus': str(x['critics_consensus']),
+         'content_rating': str(x['content_rating']),
+         'genres': str(x['genres']),
+         'directors': str(x['directors']),
+         'authors': str(x['authors']),
+         'actors': str(x['actors']),
+         'original_release_date': str(x['original_release_date']),
+         'streaming_release_date': str(x['streaming_release_date']),
+         'runtime': str(x['runtime']),
+         'production_company': str(x['production_company']),
+         'tomatometer_status': str(x['tomatometer_status']),
+         'tomatometer_rating': str(x['tomatometer_rating']),
+         'tomatometer_count': str(x['tomatometer_count']),
+         'audience_status': str(x['audience_status']),
+         'audience_rating': str(x['audience_rating']),
+         'audience_count': str(x['audience_count']),
+         'tomatometer_top_critics_count': str(x['tomatometer_top_critics_count']),
+         'tomatometer_fresh_critics_count': str(x['tomatometer_fresh_critics_count']),
+         'tomatometer_rotten_critics_count': str(x['tomatometer_rotten_critics_count']),
+         'reviews': []
+      }
+      temp_movies[str(x['rotten_tomatoes_link'])] = movie_template
+      movies_list.append(movie_template)
       
    file_reviews = pd.read_csv('rotten_tomatoes_critic_reviews.csv', header=0)
 
@@ -108,7 +111,11 @@ async def get_movie(payload: Body):
       }
    return movies[f'm/{payload.link}']
 
-@app.post('/get-review')
+@app.get('/get-all-movies')
+def get_all_movies():
+   return movies_list
+
+@app.get('/get-review')
 def get_review_bayes(payload: BodyBayes):
    result = NaiveBayes.esFresco(app_model, payload.review)
    
