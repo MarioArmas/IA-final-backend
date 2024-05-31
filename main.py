@@ -15,6 +15,9 @@ class Body(BaseModel):
 class BodyBayes(BaseModel):
    review: str
 
+class Pagination(BaseModel):
+   page: int
+
 def read_files():
    file_movies = pd.read_csv('rotten_tomatoes_movies.csv', header=0)
    temp_movies = {}
@@ -112,8 +115,22 @@ async def get_movie(payload: Body):
    return movies[f'm/{payload.link}']
 
 @app.get('/get-all-movies')
-def get_all_movies():
-   return movies_list
+def get_all_movies(payload: Pagination):
+   page_size = 100
+   index = payload.page
+
+   # Validate the page number
+   if index < 1:
+      index = 1
+    
+   start = (index - 1) * page_size
+   end = start + page_size
+    
+   # Ensure we do not go out of the range of movies_list
+   if start >= len(movies_list):
+      return []
+
+   return movies_list[start:end]
 
 @app.get('/get-review')
 def get_review_bayes(payload: BodyBayes):
